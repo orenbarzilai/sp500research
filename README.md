@@ -22,7 +22,7 @@ pip install -r requirements.txt
 
 ## Data sources
 
-- **Historical constituents**: The default `auto` provider attempts multiple public S&P 500 changes URLs (adds/removes). If all fail or you prefer your own data, pass `--constituents-provider csv` and `--constituents-csv` with a file that has columns: `date`, `ticker`, `action`.
+- **Historical constituents**: The default `auto` provider attempts to download a public changes file (adds/removes) for S&P 500 membership. If it fails or you prefer your own data, pass `--constituents-provider csv` and `--constituents-csv` with a file that has columns: `date`, `ticker`, `action`.
 - **Fundamentals**: The SEC XBRL `companyfacts` endpoint provides annual revenue and net income for 10-K filings and the DEI employee tag.
 
 ### Constituents CSV schema
