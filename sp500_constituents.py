@@ -7,9 +7,10 @@ import pandas as pd
 
 from io_utils import CacheManager, HttpClient, RateLimiter
 
-DEFAULT_CHANGES_URL = (
-    "https://raw.githubusercontent.com/leonarditc/sp500-constituents-history/master/data/sp500_changes.csv"
-)
+DEFAULT_CHANGES_URLS = [
+    "https://raw.githubusercontent.com/leonarditc/sp500-constituents-history/master/data/sp500_changes.csv",
+    "https://raw.githubusercontent.com/leonarditc/sp500-constituents-history/main/data/sp500_changes.csv",
+]
 
 REQUIRED_COLUMNS = {"date", "ticker", "action"}
 
@@ -39,16 +40,26 @@ def _load_changes_csv(path: Path) -> pd.DataFrame:
 
 
 def _download_changes_csv(client: HttpClient, cache_dir: str) -> pd.DataFrame:
-    logging.info("Attempting to download historical constituents changes from %s", DEFAULT_CHANGES_URL)
     cache_path = Path(cache_dir) / "sp500_changes.csv"
     if cache_path.exists():
         return _load_changes_csv(cache_path)
 
-    response = client.session.get(DEFAULT_CHANGES_URL, timeout=30)
-    response.raise_for_status()
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    cache_path.write_text(response.text, encoding="utf-8")
-    return _load_changes_csv(cache_path)
+    last_error: Exception | None = None
+    for url in DEFAULT_CHANGES_URLS:
+        logging.info("Attempting to download historical constituents changes from %s", url)
+        try:
+            response = client.session.get(url, timeout=30)
+            response.raise_for_status()
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache_path.write_text(response.text, encoding="utf-8")
+            return _load_changes_csv(cache_path)
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            logging.warning("Failed to download constituents changes from %s: %s", url, exc)
+
+    if last_error:
+        raise last_error
+    raise RuntimeError("No constituents changes URL succeeded.")
 
 
 def load_constituents_changes(config: ConstituentsConfig) -> pd.DataFrame:
